@@ -1,0 +1,11 @@
+defscrollback 10000
+
+bindkey "^[," prev
+bindkey "^[." next
+
+termcapinfo xterm|xterm-color ti@:te@
+
+startup_message off
+autodetach on
+hardstatus alwayslastline
+hardstatus string '%{=b kg}---[ STAGING - Load: %{=b y}%l %{g}]-----[ %{+b}%{W}%H %{g}] %= %{=kw}%?%-Lw%?%{g}(%{W}%n*%f%t%?(%u)%?%{g})%{w}%?%+Lw%?%?%= %{g}[ %{+b}%{W}%H %{g}]-----[ %{b}%D %Y-%m-%d %c:%s %{g}]---'

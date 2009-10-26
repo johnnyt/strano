@@ -1,0 +1,157 @@
+export MYSQL_ROOT_PASSWORD='<%= mysql_root_password %>'
+export DEBIAN_FRONTEND=noninteractive
+export DEBCONF_FRONTEND=noninteractive
+
+# SSH
+printf "<%= script_notice_message('Setting up SSH') %>"
+cp /etc/ssh/sshd_config ~/original_sshd_config
+<%= sed_file('/etc/ssh/sshd_config', "s|Port [0-9]\\+|Port #{ssh_options[:port]}|") %>
+
+
+printf "<%= script_notice_message('Generating public/private keys') %>"
+printf "y\n" | ssh-keygen -N '' -t rsa -f "$SSH_DIR/id_rsa"
+chown -R <%= user %>:<%= user %> "$SSH_DIR"
+
+
+# IPTables
+printf "<%= script_notice_message('Setting up iptables') %>"
+iptables -L && iptables-save > /etc/iptables.up.rules
+cp /etc/iptables.up.rules ~/original_iptables
+mv iptables.up.rules /etc/iptables.up.rules
+iptables-restore < /etc/iptables.up.rules
+iptables-save > /etc/iptables.up.rules
+
+<%= sed_file('/etc/network/interfaces', 's|iface lo inet loopback|iface lo inet loopback\npre-up iptables-restore < /etc/iptables.up.rules|') %>
+
+
+printf "<%= script_notice_message('Restarting SSHD') %>"
+/etc/init.d/ssh reload
+
+
+# Locale
+printf "<%= script_notice_message('Setting up locale') %>"
+aptitude -q -y install locales
+<%= sed_file('/etc/locale.gen', "s|# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|") %>
+locale-gen
+
+
+# Update, safe-upgrade, build-essential
+printf "<%= script_notice_message('Update, safe-upgrade, build-essential') %>"
+aptitude -q -y update
+aptitude -q -y safe-upgrade
+aptitude -q -y install build-essential
+
+
+# Basic libraries
+printf "<%= script_notice_message('Setting up basic libraries and packages') %>"
+aptitude -q -y install ruby ruby-dev git-core screen aspell libaspell-dev libxml2-dev libfreeimage3 libfreeimage-dev libopenssl-ruby libssl-dev libreadline5 libreadline5-dev libpcre3 libpcre3-dev libmemcache0 libevent1 vim zip libxslt1-dev
+
+
+# Postfix
+printf "<%= script_notice_message('Setting up Postfix') %>"
+aptitude -q -y install postfix
+<%= sed_file('/etc/postfix/main.cf', "s|inet_interfaces = all|inet_interfaces = loopback-only|") %>
+<%= sed_file('/etc/postfix/main.cf', "s|alias_database = hash:/etc/aliases|alias_database = hash:/etc/aliases\\nmyorigin = /etc/mailname|") %>
+hostname --fqdn > /etc/mailname
+/etc/init.d/postfix reload
+
+
+# MySQL
+printf "<%= script_notice_message('Setting up MySQL') %>"
+aptitude -q -y install mysql-server mysql-client libmysqlclient15-dev
+mysqladmin -u root password "$MYSQL_ROOT_PASSWORD"
+<%= sed_file('/etc/mysql/my.cnf', "s|skip-external-locking|skip-external-locking\\ndefault-character-set = utf8\\ndefault-collation = utf8_general_ci|") %>
+
+
+# Ruby Enterprise Edition
+printf "<%= script_notice_message('Setting up Ruby Enterprise Edition') %>"
+wget <%= RUBY_EE_DOWNLOAD_URL %>
+tar xfz ruby-enterprise-<%= RUBY_EE_VERSION %>.tar.gz
+printf '\n/opt/ruby-enterprise-1.8.7\n\n' | ./ruby-enterprise-<%= RUBY_EE_VERSION %>/installer
+rm -r ruby-enterprise-<%= RUBY_EE_VERSION %>*
+<%= %w[ erb gem irb rails rake rdoc ri ruby passenger-memory-stats passenger-status ].map do |bin|
+  %Q!ln -s /opt/ruby-enterprise-1.8.7/bin/#{bin} /usr/local/bin/#{bin}!
+end.join("\n")
+%>
+
+
+# Passenger and Nginx
+printf "<%= script_notice_message('Setting up Passenger and Nginx') %>"
+
+wget http://sysoev.ru/nginx/nginx-<%= NGINX_VERSION %>.tar.gz
+tar xzf nginx-<%= NGINX_VERSION %>.tar.gz
+printf '\n2\n/root/nginx-<%= NGINX_VERSION %>\n\n--with-http_ssl_module\n\n\n' | /opt/ruby-enterprise-1.8.7/bin/passenger-install-nginx-module
+
+mv nginx.conf /opt/nginx/conf/nginx.conf
+mv nginx_init.d /etc/init.d/nginx
+chmod +x /etc/init.d/nginx
+update-rc.d nginx defaults
+
+mkdir -p /etc/nginx/sites-available
+mkdir -p /etc/nginx/sites-enabled
+mv nginx_maintenance.include /etc/nginx/_maintenance.include
+
+rm -r nginx-<%= NGINX_VERSION %>*
+
+
+
+# Sphinx Search Engine
+printf "<%= script_notice_message('Installing Sphinx') %>"
+aptitude -q -y install checkinstall         # Allows us to install Sphinx as a Debian package
+wget http://www.sphinxsearch.com/downloads/sphinx-<%= SPHINX_VERSION %>.tar.gz
+tar xfz sphinx-<%= SPHINX_VERSION %>.tar.gz
+cd sphinx-<%= SPHINX_VERSION %>
+./configure
+make
+"Sphinx is a full-text search engine." | checkinstall --maintainer=endeveit@gmail.com --pkgname=sphinxsearch-<%= SPHINX_PKG_NAME %> --pkgversion=<%= SPHINX_PKG_VERSION %> --pkgrelease=1 --pkglicense=GPL --pkggroup=web --pkgsource=sphinx-<%= SPHINX_PKG_NAME %>-<%= SPHINX_PKG_VERSION %> --pkgaltsource=http://sphinxsearch.com/downloads.html --nodoc
+cd ..
+rm -r sphinx-<%= SPHINX_VERSION %>*
+
+# Memcached
+printf "<%= script_notice_message('Setting up Memcached') %>"
+aptitude -q -y install memcached
+
+# Autossh
+printf "<%= script_notice_message('Setting up autossh') %>"
+aptitude -q -y install autossh
+
+# Logrotate - Rotate Nginx logs (Overall Passenger error log and the access logs for requests that don't correspond to a particular vhost)
+#   Keep for 7 days
+printf "<%= script_notice_message('Setting up Logrotate') %>"
+printf '/opt/nginx/logs/*.log {
+  daily
+  missingok
+  compress
+  rotate 7
+  dateext
+  notifempty
+  sharedscripts
+  extension gz
+  copytruncate
+}' > /etc/logrotate.d/nginx 
+
+# Logrotate - Rotate logs for individual applications
+#   Keep for 365 days
+printf '/var/www/*/*/shared/log/*.log {
+  daily
+  missingok
+  compress
+  rotate 365
+  dateext
+  notifempty
+  sharedscripts
+  extension gz
+  copytruncate
+}' > /etc/logrotate.d/passenger 
+
+
+# Gems
+printf "<%= script_notice_message('Installing Gems') %>"
+gem sources -a http://gems.github.com
+su -c 'gem sources -a http://gems.github.com' <%= deploy_user %>
+gem install ruby-debug bcrypt-ruby RedCloth capistrano image_science hpricot libxml-ruby raspell mysql rake nokogiri mechanize rspec --no-rdoc --no-ri
+
+
+# Cleanup
+printf "<%= script_notice_message('Cleaning up') %>"
+rm original_*

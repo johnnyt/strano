@@ -1,0 +1,11 @@
+export ROOT_USER_PASSWORD='<%= root_user_password %>'
+export DEPLOY_USER_PASSWORD='<%= deploy_user_password %>'
+
+useradd -m -s /bin/bash <%= deploy_user %>
+printf "$DEPLOY_USER_PASSWORD\n$DEPLOY_USER_PASSWORD\n" | passwd <%= user %>
+printf "$ROOT_USER_PASSWORD\n$ROOT_USER_PASSWORD\n" | passwd
+
+cp /etc/sudoers ~/original_sudoers
+echo "<%= deploy_user %>  ALL=(ALL) ALL" >> ~/original_sudoers
+cp -f ~/original_sudoers /etc/sudoers
+chmod 440 /etc/sudoers

@@ -1,0 +1,14 @@
+set $maintenance 0;
+
+if (-f $document_root/maintenance.html) {
+  set $maintenance 1;
+}
+
+if ($request_uri ~ \.(png|jpg|jpeg|gif|js|css)$) {
+  set $maintenance 0;
+}
+
+if ($maintenance = 1) {
+  rewrite ^(.*)$ /maintenance.html;
+  break;
+}

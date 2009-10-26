@@ -1,0 +1,13 @@
+#!/bin/bash
+#  - Run "screen -x" if there is an existing screen
+#  - Otherwise run "screen"
+SCREEN_EXISTS=`ps --no-headers -C screen | wc -l`
+if [ ${SCREEN_EXISTS} -gt 0 ]; then
+  echo "Attaching to existing Screen"
+  sleep 0.5
+  TERM=screen screen -x
+else
+  echo "Starting new Screen session"
+  sleep 0.5
+  TERM=screen screen
+fi

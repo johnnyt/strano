@@ -1,0 +1,14 @@
+deploy_user: 'deploy'
+runner_user: 'www-data'
+
+scm:
+  repository: "ssh://myserver.com/var/git/{{application}}"
+  deploy_to: "/var/www/{{domain}}/{{sub_domain}}"
+  keep_releases: 8
+
+ssh_options:
+  forward_agent: true
+  port: 34543
+
+pty: true
+use_sudo: false
