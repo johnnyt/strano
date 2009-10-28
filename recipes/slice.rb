@@ -15,6 +15,13 @@ NGINX_VERSION = "0.7.63"
 # GENERAL SLICE TASKS
 # =============================================================================
 namespace :slice do
+  namespace :password do
+    desc "Enters deploy's PW on the server"
+    task :deploy do
+      sudo "date"
+    end
+  end
+
   namespace :nginx do
     desc "Restart NGINX"
     task :restart do
@@ -75,7 +82,7 @@ DEF
 
     sudo %Q!chown -R #{deploy_user}:#{deploy_user} /home/#{deploy_user}!
 
-    put render("slice", "start_screen", binding), "/home/#{deploy_user}/start_screen", :mode => 755
+    put render("slice", "start_screen", binding), "/home/#{deploy_user}/start_screen", :mode => 0755
 		sudo "mv /home/#{deploy_user}/start_screen /usr/local/bin/"
     put render("slice", "bashrc", binding), "/home/#{deploy_user}/.bashrc"
     put render("slice", "screenrc-#{server_stage}", binding), "/home/#{deploy_user}/.screenrc"
@@ -247,4 +254,4 @@ task :setup_slice_variables do
   default_run_options[:pty] = Strano::Vars[:pty]
 end
 
-on :start, 'setup_slice_variables', :only => %w[ slice:nginx:restart slice:update_keys slice:update_shell_env slice:update_ssh_config slice:setup ]
+on :start, 'setup_slice_variables', :only => %w[ slice:password:deploy slice:nginx:restart slice:update_keys slice:update_shell_env slice:update_ssh_config slice:setup ]
