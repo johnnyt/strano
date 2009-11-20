@@ -10,7 +10,7 @@ cp /etc/ssh/sshd_config ~/original_sshd_config
 
 printf "<%= script_notice_message('Generating public/private keys') %>"
 printf "y\n" | ssh-keygen -N '' -t rsa -f "$SSH_DIR/id_rsa"
-chown -R <%= user %>:<%= user %> "$SSH_DIR"
+chown -R <%= deploy_user %>:<%= deploy_user %> "$SSH_DIR"
 
 
 # IPTables
