@@ -244,7 +244,7 @@ namespace :db do
     [
       %Q!DROP DATABASE IF EXISTS #{db_name}!,
       %Q!CREATE DATABASE #{db_name}!,
-      %Q!GRANT ALL PRIVILEGES ON #{db_name}.* TO '#{application}'@'localhost' IDENTIFIED BY '#{db_password}'!
+      %Q!GRANT ALL PRIVILEGES ON #{db_name}.* TO '#{db_user}'@'localhost' IDENTIFIED BY '#{db_password}'!
     ].each do |mysql_command|
       run %Q!echo "#{mysql_command};" | mysql!
     end
