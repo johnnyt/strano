@@ -18,8 +18,13 @@ module Strano
 
       def config_dir
         @config_dir ||= begin
-          if defined?(Rails.root)
-            config_path = File.join(Rails.root, %w[ config strano_custom_files ])
+          rails_config_path = File.expand_path(File.join(File.dirname(__FILE__), %w[ .. .. .. .. .. config strano_custom_files ]))
+
+          # Running from within RAILS_ROOT/vendor/plugins/strano
+          if File.exists?(rails_config_path)
+            config_path = rails_config_path
+
+          # Running from within the strano dir
           else
             config_path = File.join(File.dirname(__FILE__), %w[ .. .. strano_custom_files ])
           end

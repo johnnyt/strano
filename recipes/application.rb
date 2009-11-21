@@ -331,14 +331,14 @@ desc "Set the target stage to 'staging'."
 task :staging do 
   set :stage, 'staging'
   set :rails_env, 'staging'
-  set :server_name, servers[stage]['default']
+  set :server_name, servers[stage]
 end 
 
 desc "Set the target stage to 'production'."
 task :production do 
   set :stage, 'production'
   set :rails_env, 'production'
-  set :server_name, servers[stage]['default']
+  set :server_name, servers[stage]
 end 
 
 # =============================================================================
@@ -375,10 +375,6 @@ task :setup_application_variables do
 	[ :web, :app, :files, :db ].each do |server_role|
 		role server_role, servers[stage]
 	end
-  # role :web,   servers[stage]['web']    || servers[stage]['default']
-  # role :app,   servers[stage]['app']    || servers[stage]['default']
-  # role :files, servers[stage]['files']  || servers[stage]['default']
-  # role :db,    servers[stage]['db']     || servers[stage]['default'], :primary => true
 
 
   set :port,        Strano::Vars[:ssh_options][:port].to_s
