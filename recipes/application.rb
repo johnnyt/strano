@@ -92,7 +92,7 @@ end
 # =============================================================================
 # APPLICATION TASKS (setup, remove, restart)
 # =============================================================================
-namespace :strano do
+namespace :app do
   desc "Setup the site on a server (deploy:setup, DB, config files, initial code checkout)"
   task :setup, :roles => :app do
     transaction do
@@ -107,8 +107,8 @@ namespace :strano do
 
   desc "[internal] Sets up all shared config files (database.yml, any additional config files, etc)"
   task :setup_initial_files_and_paths, :roles => :app do
-    # If this task fails - we should rollback the entire strano:setup process (remove the site from the server)
-    on_rollback { strano.remove_all_files }
+    # If this task fails - we should rollback the entire app:setup process (remove the site from the server)
+    on_rollback { app.remove_all_files }
 
     # So tasks such as consumer:restart know not to run when setting up the app
     set :initial_app_setup, true
@@ -169,7 +169,7 @@ namespace :strano do
       end
     end
   end
-  after "deploy:update_code", "strano:link_files"
+  after "deploy:update_code", "app:link_files"
 
 
   desc "[internal] Set up all the correct permissions for files."
@@ -179,8 +179,8 @@ namespace :strano do
 
     sudo "chown #{runner_user}:#{runner_user} #{current_release}/config/environment.rb"
   end
-  after "strano:link_files", "strano:chown_files"
-  after "deploy:migrate", "strano:chown_files"
+  after "app:link_files", "app:chown_files"
+  after "deploy:migrate", "app:chown_files"
 
 
   desc "[internal] Removes all remote files from the server (application directory)."
@@ -206,7 +206,7 @@ namespace :strano do
 
   desc "[internal] Remove the application from the server (db, files, etc)"
   task :remove, :roles => [:db, :app] do
-    strano.remove_all_files
+    app.remove_all_files
     db.drop
   end
 
@@ -352,7 +352,7 @@ namespace :ui do
 
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts color + stage.to_s.upcase.rjust(Strano::RJUST)
-      puts servers[stage]['default'].upcase.rjust(Strano::RJUST)
+      puts servers[stage].upcase.rjust(Strano::RJUST)
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts Capistrano::Logger.color(:none)
     end
@@ -370,10 +370,15 @@ task :setup_application_variables do
   #   server_name
 
   # SERVERS
-  role :web,   servers[stage]['web']    || servers[stage]['default']
-  role :app,   servers[stage]['app']    || servers[stage]['default']
-  role :files, servers[stage]['files']  || servers[stage]['default']
-  role :db,    servers[stage]['db']     || servers[stage]['default'], :primary => true
+	# Right now - Strano has only been tested with everything running on the same server.
+	# It would be nice to be able to use different servers for each role.
+	[ :web, :app, :files, :db ].each do |server_role|
+		role server_role, servers[stage]
+	end
+  # role :web,   servers[stage]['web']    || servers[stage]['default']
+  # role :app,   servers[stage]['app']    || servers[stage]['default']
+  # role :files, servers[stage]['files']  || servers[stage]['default']
+  # role :db,    servers[stage]['db']     || servers[stage]['default'], :primary => true
 
 
   set :port,        Strano::Vars[:ssh_options][:port].to_s
@@ -404,7 +409,6 @@ task :setup_application_variables do
   set :branch,            stage unless value_exists?(:branch)
   set :base_path,         File.expand_path(File.join(shared_path, '..'))
 end
-# before 'setup_application_variables', 'ui:announce_stage'
 
 on :start, 'ui:announce_stage', :setup_application_variables, :except => stages + %w[ 
   multistage:prepare ui:are_you_sure ui:announce_stage
