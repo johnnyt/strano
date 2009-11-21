@@ -388,7 +388,7 @@ task :setup_application_variables do
 
   # DATABASE VARIALBES
   set :db_name, "#{application}_#{stage}"
-  set :db_user, application
+  set :db_user, application[0...16] # MySQL usernames must be 16 chars or less
   Strano::Vars.secure_var(:db_password) {|vars| vars['applications'][application][stage]['mysql_password']}
 
   # Pull in all needed encrypted variables
