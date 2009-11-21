@@ -8,7 +8,7 @@ SPHINX_PKG_VERSION = "r1785"
 RUBY_EE_VERSION = "1.8.7-2009.10"
 RUBY_EE_DOWNLOAD_URL = "http://rubyforge.org/frs/download.php/66162/ruby-enterprise-#{RUBY_EE_VERSION}.tar.gz"
 
-NGINX_VERSION = "0.7.63"
+NGINX_VERSION = "0.7.64"
 
 
 # =============================================================================
