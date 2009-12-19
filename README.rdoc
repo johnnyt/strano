@@ -1,5 +1,5 @@
 = Strano
 
-The documentation (wiki) is at http://github.com/johnnyt/strano/wikis/home/
+The documentation (wiki) is at http://github.com/johnnyt/strano/wikis/home
 
 Copyright (c) 2008,2009 Alliance Health. See MIT-LICENSE for details.

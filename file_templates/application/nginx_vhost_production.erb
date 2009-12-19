@@ -2,8 +2,8 @@ server {
   listen 80;
   server_name <%= sub_domain %>.<%= domain %>;
   root <%= current_path %>/public;
-  access_log <%= shared_path %>/log/nginx-<%= domain %>-<%= sub_domain %>.log;
-  error_log <%= shared_path %>/log/nginx-error-<%= domain %>-<%= sub_domain %>.log;
+  access_log <%= shared_path %>/log/nginx.log;
+  error_log <%= shared_path %>/log/nginx-errors.log;
   passenger_enabled on;
   rails_env <%= stage %>;
 
