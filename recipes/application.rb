@@ -378,6 +378,7 @@ task :setup_application_variables do
 
   set :port,        Strano::Vars[:ssh_options][:port].to_s
   set :user,        Strano::Vars[:deploy_user]
+  set :deploy_user, Strano::Vars[:deploy_user]
   set :runner,      Strano::Vars[:runner_user]
   Strano::Vars.secure_var(:password)             {|vars| vars['servers'][server_name]['deploy_user_password']}
   Strano::Vars.secure_var(:mysql_root_password)  {|vars| vars['servers'][server_name]['mysql_root_password']}
