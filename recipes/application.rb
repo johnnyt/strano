@@ -4,7 +4,7 @@ set :default_stage, 'staging'
 set :stages, %w[ production staging ]
 require 'capistrano/ext/multistage'
 
-require 'activesupport'
+require 'active_support'
 
 namespace :password do
   desc "Enters deploy's PW on the server"
@@ -32,7 +32,7 @@ namespace :maint do
 end
 
 namespace :snapshot do
-  desc "[internal] Restores the app from the most recent backup in the remote /backups dir, and sets up the correct permissions on the files."
+  desc "Restores the app from the most recent backup in the remote /backups dir, and sets up the correct permissions on the files."
   task :restore, :roles => :app do
     run "cd #{current_path} && rake snapshot:restore"
     strano.chown_files
@@ -331,14 +331,12 @@ desc "Set the target stage to 'staging'."
 task :staging do 
   set :stage, 'staging'
   set :rails_env, 'staging'
-  set :server_name, servers[stage]
 end 
 
 desc "Set the target stage to 'production'."
 task :production do 
   set :stage, 'production'
   set :rails_env, 'production'
-  set :server_name, servers[stage]
 end 
 
 # =============================================================================
@@ -349,10 +347,11 @@ namespace :ui do
   task :announce_stage do
     if exists?(:stage)
       color = stage.to_s == 'production' ? Capistrano::Logger.color(:red) : Capistrano::Logger.color(:blue)
+      server_name = servers[stage].kind_of?(Hash) ? servers[stage]['default'] : servers[stage].to_s
 
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts color + stage.to_s.upcase.rjust(Strano::RJUST)
-      puts servers[stage].upcase.rjust(Strano::RJUST)
+      puts server_name.upcase.rjust(Strano::RJUST)
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts Capistrano::Logger.color(:none)
     end
@@ -362,6 +361,8 @@ end
 
 desc "[internal] Setup variables used in all tasks."
 task :setup_application_variables do
+  set :server_name, servers[stage].kind_of?(Hash) ? servers[stage]['default'] : servers[stage].to_s
+
   # Have available to us from deploy.rb / stage task:
   #   application
   #   domain
@@ -373,7 +374,7 @@ task :setup_application_variables do
 	# Right now - Strano has only been tested with everything running on the same server.
 	# It would be nice to be able to use different servers for each role.
 	[ :web, :app, :files, :db ].each do |server_role|
-		role server_role, servers[stage]
+		role server_role, server_name
 	end
 
 

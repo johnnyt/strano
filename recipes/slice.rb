@@ -217,7 +217,7 @@ end # namespace :slice
 # Needs to be outside of a namespace in order to set a role
 desc "[internal] Setup variables used in slice management tasks."
 task :setup_slice_variables do
-  set :server_name, Capistrano::CLI.colorized_prompt("Server Name (needs to be setup in vars file): ")
+  set :server_name, Capistrano::CLI.colorized_prompt("What is the server's name in variables.yml.aes? ")
   raise ArgumentError, "Server Name must be provided" if server_name.blank?
 
   # =============================================================================

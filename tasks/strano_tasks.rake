@@ -27,8 +27,6 @@ namespace :snapshot do
     FileUtils.mkdir_p(snapshot_dir)
     FileUtils.chdir(snapshot_dir)
 
-    STDOUT.puts "\n\n-----[ #{start_time.to_formatted_s(:db)} | CREATING SNAPSHOT ]----------------------------------------------------------------------------------"
-
     # DB
     config_keys = []
     config_dbs = []
@@ -198,8 +196,6 @@ Done dumping DBs
   task :restore => :environment do
     include ActionView::Helpers::NumberHelper
     start_time = Time.now
-
-    STDOUT.puts "\n\n-----[ #{start_time.to_formatted_s(:db)} | RESTORING SNAPSHOT ]----------------------------------------------------------------------------------\n\n"
 
     snapshots_dir = File.expand_path(File.join(RAILS_ROOT, 'snapshots'))
     FileUtils.mkdir_p(snapshots_dir)

@@ -8,7 +8,7 @@ module Strano
     ENCRYPTED_VARS_FILENAME = 'variables.yml.aes'
 
     class << self
-      attr_writer :config_dir, :defaults
+      attr_writer :defaults
 
       def filename_for(file, type)
         custom_dir = File.expand_path(File.join(config_dir, %W[ file_templates #{type} #{file} ]))
@@ -21,7 +21,7 @@ module Strano
           if defined?(RAILS_ROOT)
             config_path = File.join(RAILS_ROOT, %w[ config strano_custom_files ])
           else
-            config_path = File.join(File.dirname(__FILE__), %w[ .. .. .. .. .. config strano_custom_files ])
+            config_path = File.join(File.dirname(__FILE__), %w[ .. .. strano_custom_files ])
           end
           File.expand_path(config_path)
         end
@@ -71,7 +71,7 @@ module Strano
           valid_input = false
           while !valid_input
             puts Capistrano::Logger.color(:yellow)
-            puts "  Encrypted File Password:".rjust(Strano::RJUST) + Capistrano::Logger.color(:none)
+            puts "Password for #{ENCRYPTED_VARS_FILENAME}:".rjust(Strano::RJUST) + Capistrano::Logger.color(:none)
 
             password = $stdin.gets
             yaml_content = `cat #{File.join(%W[ #{config_dir} #{ENCRYPTED_VARS_FILENAME} ])} | openssl aes-256-cbc -d -salt -k '#{password.chomp}'`
