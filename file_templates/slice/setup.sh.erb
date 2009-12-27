@@ -44,7 +44,7 @@ aptitude -q -y install build-essential
 
 # Basic libraries
 printf "<%= script_notice_message('Setting up basic libraries and packages') %>"
-aptitude -q -y install ruby ruby-dev git-core screen aspell libaspell-dev libxml2-dev libfreeimage3 libfreeimage-dev libopenssl-ruby libssl-dev libreadline5 libreadline5-dev libpcre3 libpcre3-dev libmemcache0 libevent1 vim zip libxslt1-dev
+aptitude -q -y install ruby ruby-dev git-core screen aspell libaspell-dev libxml2-dev libfreeimage3 libfreeimage-dev libopenssl-ruby libssl-dev libreadline5 libreadline5-dev libpcre3 libpcre3-dev libmemcache0 libevent1 vim zip libxslt1-dev libperl-dev gs-gpl
 
 
 # Postfix
@@ -150,7 +150,7 @@ printf '/var/www/*/*/shared/log/*.log {
 printf "<%= script_notice_message('Installing Gems') %>"
 gem sources -a http://gems.github.com
 su -c 'gem sources -a http://gems.github.com' <%= deploy_user %>
-gem install ruby-debug bcrypt-ruby RedCloth capistrano image_science hpricot libxml-ruby raspell mysql rake nokogiri mechanize rspec --no-rdoc --no-ri
+gem install ruby-debug bcrypt-ruby RedCloth capistrano capistrano-ext aws termios image_science hpricot libxml-ruby raspell mysql rake nokogiri mechanize rspec --no-rdoc --no-ri
 
 
 # Cleanup
