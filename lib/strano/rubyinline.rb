@@ -6,18 +6,19 @@
 require 'active_support'
 require 'etc'
 
-if defined?(RAILS_ROOT) || File.dirname(__FILE__) =~ %r</vendor/plugins/strano/>
-  rails_root = defined?(RAILS_ROOT) ? RAILS_ROOT : File.dirname(__FILE__).gsub(%r</vendor/plugins/strano/.*$>, '')
+if !defined?(RAILS_ROOT) && File.dirname(__FILE__) =~ %r</vendor/plugins/strano/>
+  RAILS_ROOT = File.expand_path(File.dirname(__FILE__).gsub(%r</vendor/plugins/strano/.*$>, ''))
+end
 
-  deploy_file = "#{rails_root}/config/deploy.rb"
-
+if defined?(RAILS_ROOT)
+  deploy_file = "#{RAILS_ROOT}/config/deploy.rb"
 
   app_name =  if File.file?(deploy_file) && (contents = File.read(deploy_file)) && (contents =~ %r<set\s+:application,\s+['"](\w+)['"]>)
                $1
-              elsif rails_root =~ %r<^/var/www/(.*)/releases/\d+$>
+              elsif RAILS_ROOT =~ %r<^/var/www/(.*)/releases/\d+$>
                 $1.gsub(/\W/, '')
               else
-                rails_root.split('/').last
+                RAILS_ROOT.split('/').last
               end
 
   # Get the user name
