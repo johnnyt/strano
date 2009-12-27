@@ -69,17 +69,17 @@ namespace :snapshot do
       source_string = "#{server_name_colors[:source]}#{servers[source_stage]['default'].upcase}: #{no_color}"
       destination_string = "#{server_name_colors[:destination]}#{servers[stage]['default'].upcase}: #{no_color}"
 
-      command = "cd /home/#{user}/#{application}/ && rake snapshot:create"
+      command = "cd /home/#{deploy_user}/#{application}/ && rake snapshot:create"
       puts %Q!       #{source_string}#{color}Running: "#{command}"#{no_color}!
-      remote_connection = Net::SSH.start(servers[source_stage]['default'], user)
+      remote_connection = Net::SSH.start(servers[source_stage]['default'], deploy_user)
       remote_connection.exec!(command)
 
-      source = "#{servers[source_stage]['default']}:/home/#{user}/#{application}/snapshots/current.tar"
+      source = "#{servers[source_stage]['default']}:/home/#{deploy_user}/#{application}/snapshots/current.tar"
       command = "scp #{source} #{current_path}/snapshots/current.tar"
       puts %Q!       #{destination_string}#{color}Running: "#{command}"#{no_color}!
       run command
 
-      command = "cd /home/#{user}/#{application}/ && rake snapshot:restore"
+      command = "cd /home/#{deploy_user}/#{application}/ && rake snapshot:restore"
       puts %Q!       #{destination_string}#{color}Running: "#{command}"#{no_color}!
       run command
 
@@ -92,7 +92,7 @@ end
 # =============================================================================
 # APPLICATION TASKS (setup, remove, restart)
 # =============================================================================
-namespace :strano do
+namespace :app do
   desc "Setup the site on a server (deploy:setup, DB, config files, initial code checkout)"
   task :setup, :roles => :app do
     transaction do
@@ -107,17 +107,17 @@ namespace :strano do
 
   desc "[internal] Sets up all shared config files (database.yml, any additional config files, etc)"
   task :setup_initial_files_and_paths, :roles => :app do
-    # If this task fails - we should rollback the entire strano:setup process (remove the site from the server)
-    on_rollback { strano.remove_all_files }
+    # If this task fails - we should rollback the entire app:setup process (remove the site from the server)
+    on_rollback { app.remove_all_files }
 
     # So tasks such as consumer:restart know not to run when setting up the app
     set :initial_app_setup, true
 
     # The entire app should default to deploy:deploy (the deploy:setup task runs as root)
-    sudo "chown -R #{user}:#{user} #{base_path}"
+    sudo "chown -R #{deploy_user}:#{deploy_user} #{base_path}"
     sudo "chmod -R 775 #{base_path}"
 
-    sudo "chown -R #{runner}:#{user} #{shared_path}"
+    sudo "chown -R #{runner_user}:#{deploy_user} #{shared_path}"
     sudo "chmod -R 775 #{shared_path}"
 
     %w[ config log backups snapshots tmp ].each do |dir|
@@ -139,8 +139,8 @@ namespace :strano do
     end
 
     # Create link for easier use of the application when sshing in
-    run "if [ -h /home/#{user}/#{application} ]; then rm /home/#{user}/#{application}; fi"
-    run "ln -s #{current_path} /home/#{user}/#{application}"
+    run "if [ -h /home/#{deploy_user}/#{application} ]; then rm /home/#{deploy_user}/#{application}; fi"
+    run "ln -s #{current_path} /home/#{deploy_user}/#{application}"
   end
 
 
@@ -169,18 +169,18 @@ namespace :strano do
       end
     end
   end
-  after "deploy:update_code", "strano:link_files"
+  after "deploy:update_code", "app:link_files"
 
 
   desc "[internal] Set up all the correct permissions for files."
   task :chown_files, :roles => [:app] do
-    sudo "chown -R #{runner}:#{user} #{shared_path}"
+    sudo "chown -R #{runner_user}:#{deploy_user} #{shared_path}"
     sudo "chmod -R 775 #{shared_path}"
 
-    sudo "chown #{runner}:#{runner} #{current_release}/config/environment.rb"
+    sudo "chown #{runner_user}:#{runner_user} #{current_release}/config/environment.rb"
   end
-  after "strano:link_files", "strano:chown_files"
-  after "deploy:migrate", "strano:chown_files"
+  after "app:link_files", "app:chown_files"
+  after "deploy:migrate", "app:chown_files"
 
 
   desc "[internal] Removes all remote files from the server (application directory)."
@@ -189,7 +189,7 @@ namespace :strano do
       #{base_path}
       /etc/nginx/sites-available/#{domain}-#{sub_domain}
       /etc/nginx/sites-enabled/#{domain}-#{sub_domain}
-      /home/#{user}/#{application}
+      /home/#{deploy_user}/#{application}
     ]
 
     files_to_remove += additional_application_files if exists?(:additional_application_files)
@@ -206,7 +206,7 @@ namespace :strano do
 
   desc "[internal] Remove the application from the server (db, files, etc)"
   task :remove, :roles => [:db, :app] do
-    strano.remove_all_files
+    app.remove_all_files
     db.drop
   end
 
@@ -244,7 +244,7 @@ namespace :db do
     [
       %Q!DROP DATABASE IF EXISTS #{db_name}!,
       %Q!CREATE DATABASE #{db_name}!,
-      %Q!GRANT ALL PRIVILEGES ON #{db_name}.* TO '#{application}'@'localhost' IDENTIFIED BY '#{db_password}'!
+      %Q!GRANT ALL PRIVILEGES ON #{db_name}.* TO '#{db_user}'@'localhost' IDENTIFIED BY '#{db_password}'!
     ].each do |mysql_command|
       run %Q!echo "#{mysql_command};" | mysql!
     end
@@ -293,7 +293,7 @@ namespace :sass do
   desc 'Updates the stylesheets generated by Sass'
   task :update, :roles => :app do
     run "mkdir -p #{current_release}/public/stylesheets"
-    sudo "chown -R #{runner}:#{user} #{current_release}/public/stylesheets"
+    sudo "chown -R #{runner_user}:#{deploy_user} #{current_release}/public/stylesheets"
     run "cd #{current_release}; rake sass:update --trace"
   end
 end
@@ -331,14 +331,14 @@ desc "Set the target stage to 'staging'."
 task :staging do 
   set :stage, 'staging'
   set :rails_env, 'staging'
-  set :server_name, servers[stage]['default']
+  set :server_name, servers[stage]
 end 
 
 desc "Set the target stage to 'production'."
 task :production do 
   set :stage, 'production'
   set :rails_env, 'production'
-  set :server_name, servers[stage]['default']
+  set :server_name, servers[stage]
 end 
 
 # =============================================================================
@@ -352,7 +352,7 @@ namespace :ui do
 
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts color + stage.to_s.upcase.rjust(Strano::RJUST)
-      puts servers[stage]['default'].upcase.rjust(Strano::RJUST)
+      puts servers[stage].upcase.rjust(Strano::RJUST)
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts Capistrano::Logger.color(:none)
     end
@@ -370,27 +370,25 @@ task :setup_application_variables do
   #   server_name
 
   # SERVERS
-  role :web,   servers[stage]['web']    || servers[stage]['default']
-  role :app,   servers[stage]['app']    || servers[stage]['default']
-  role :files, servers[stage]['files']  || servers[stage]['default']
-  role :db,    servers[stage]['db']     || servers[stage]['default'], :primary => true
+	# Right now - Strano has only been tested with everything running on the same server.
+	# It would be nice to be able to use different servers for each role.
+	[ :web, :app, :files, :db ].each do |server_role|
+		role server_role, servers[stage]
+	end
 
 
   set :port,        Strano::Vars[:ssh_options][:port].to_s
   set :user,        Strano::Vars[:deploy_user]
   set :deploy_user, Strano::Vars[:deploy_user]
   set :runner,      Strano::Vars[:runner_user]
+  set :runner_user, runner
+
   Strano::Vars.secure_var(:password)             {|vars| vars['servers'][server_name]['deploy_user_password']}
   Strano::Vars.secure_var(:mysql_root_password)  {|vars| vars['servers'][server_name]['mysql_root_password']}
 
-  Strano::Vars.secure_var(:amazon_access_key_id)      {|vars| vars['amazon']['access_key_id']}
-  Strano::Vars.secure_var(:amazon_secret_access_key)  {|vars| vars['amazon']['secret_access_key']}
-  Strano::Vars.secure_var(:amazon_snapshot_bucket_base_name)  {|vars| vars['amazon']['snapshot_bucket_base_name']}
-
-
   # DATABASE VARIALBES
   set :db_name, "#{application}_#{stage}"
-  set :db_user, application
+  set :db_user, application[0...16] # MySQL usernames must be 16 chars or less
   Strano::Vars.secure_var(:db_password) {|vars| vars['applications'][application][stage]['mysql_password']}
 
   # Pull in all needed encrypted variables
@@ -407,7 +405,6 @@ task :setup_application_variables do
   set :branch,            stage unless value_exists?(:branch)
   set :base_path,         File.expand_path(File.join(shared_path, '..'))
 end
-# before 'setup_application_variables', 'ui:announce_stage'
 
 on :start, 'ui:announce_stage', :setup_application_variables, :except => stages + %w[ 
   multistage:prepare ui:are_you_sure ui:announce_stage
