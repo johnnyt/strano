@@ -1,7 +1,7 @@
 $LOAD_PATH << File.dirname(__FILE__)
 
 require 'capistrano'
-require 'activesupport'
+require 'active_support'
 
 require 'capistrano_ext/configuration'
 require 'capistrano_ext/logger'

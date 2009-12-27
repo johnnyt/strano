@@ -8,13 +8,20 @@ SPHINX_PKG_VERSION = "r1785"
 RUBY_EE_VERSION = "1.8.7-2009.10"
 RUBY_EE_DOWNLOAD_URL = "http://rubyforge.org/frs/download.php/66162/ruby-enterprise-#{RUBY_EE_VERSION}.tar.gz"
 
-NGINX_VERSION = "0.7.63"
+NGINX_VERSION = "0.7.64"
 
 
 # =============================================================================
 # GENERAL SLICE TASKS
 # =============================================================================
 namespace :slice do
+  namespace :password do
+    desc "Enters deploy's PW on the server"
+    task :deploy do
+      sudo "date"
+    end
+  end
+
   namespace :nginx do
     desc "Restart NGINX"
     task :restart do
@@ -24,11 +31,11 @@ namespace :slice do
 
   desc "Update ~/.ssh/authorized_keys and reload sshd."
   task :update_keys do
-    ssh_dir = "/home/#{user}/.ssh"
-    sudo "mkdir -p #{ssh_dir} && chmod 700 #{ssh_dir} && chown #{user}:#{user} #{ssh_dir}"
+    ssh_dir = "/home/#{deploy_user}/.ssh"
+    sudo "mkdir -p #{ssh_dir} && chmod 700 #{ssh_dir} && chown #{deploy_user}:#{deploy_user} #{ssh_dir}"
 
     put File.read(Strano::Vars.filename_for('authorized_keys.erb', 'slice')), "#{ssh_dir}/authorized_keys", :mode => 0600
-    run "chown -R #{user}:#{user} #{ssh_dir}"
+    run "chown -R #{deploy_user}:#{deploy_user} #{ssh_dir}"
   end
 
 
@@ -56,7 +63,7 @@ namespace :slice do
     servers.keys.each do |server|
       new_file_content += <<DEF
 Host #{server}
-  User         #{user}
+  User         #{deploy_user}
   Port         #{ssh_options[:port]}
   HostName     #{servers[server]['ip_address']}
   ForwardAgent yes
@@ -75,7 +82,7 @@ DEF
 
     sudo %Q!chown -R #{deploy_user}:#{deploy_user} /home/#{deploy_user}!
 
-    put render("slice", "start_screen", binding), "/home/#{deploy_user}/start_screen", :mode => 755
+    put render("slice", "start_screen", binding), "/home/#{deploy_user}/start_screen", :mode => 0755
 		sudo "mv /home/#{deploy_user}/start_screen /usr/local/bin/"
     put render("slice", "bashrc", binding), "/home/#{deploy_user}/.bashrc"
     put render("slice", "screenrc-#{server_stage}", binding), "/home/#{deploy_user}/.screenrc"
@@ -110,7 +117,7 @@ DEF
 
     desc "[internal] Attempt to login to the slice using default SSH options and root user."
     task :verify_new_slice do
-      previous_user = user
+      previous_user = deploy_user
       previous_ssh_options = ssh_options
       set :user, 'root'
       set :ssh_options, {:port => 22, :auth_methods => %w[ password ]}
@@ -210,7 +217,7 @@ end # namespace :slice
 # Needs to be outside of a namespace in order to set a role
 desc "[internal] Setup variables used in slice management tasks."
 task :setup_slice_variables do
-  set :server_name, Capistrano::CLI.colorized_prompt("Server Name (needs to be setup in vars file): ")
+  set :server_name, Capistrano::CLI.colorized_prompt("What is the server's name in variables.yml.aes? ")
   raise ArgumentError, "Server Name must be provided" if server_name.blank?
 
   # =============================================================================
@@ -236,8 +243,10 @@ task :setup_slice_variables do
   role :slice, ip_address
 
   set :user,        Strano::Vars[:deploy_user]
-  set :password,    deploy_user_password
   set :deploy_user, user
+  set :password,    deploy_user_password
+  set :runner,      Strano::Vars[:runner_user]
+  set :runner_user, runner
 
   # =============================================================================
   # SSH / SECURITY OPTIONS
@@ -247,4 +256,4 @@ task :setup_slice_variables do
   default_run_options[:pty] = Strano::Vars[:pty]
 end
 
-on :start, 'setup_slice_variables', :only => %w[ slice:nginx:restart slice:update_keys slice:update_shell_env slice:update_ssh_config slice:setup ]
+on :start, 'setup_slice_variables', :only => %w[ slice:password:deploy slice:nginx:restart slice:update_keys slice:update_shell_env slice:update_ssh_config slice:setup ]

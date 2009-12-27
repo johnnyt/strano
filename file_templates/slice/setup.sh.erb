@@ -10,7 +10,7 @@ cp /etc/ssh/sshd_config ~/original_sshd_config
 
 printf "<%= script_notice_message('Generating public/private keys') %>"
 printf "y\n" | ssh-keygen -N '' -t rsa -f "$SSH_DIR/id_rsa"
-chown -R <%= user %>:<%= user %> "$SSH_DIR"
+chown -R <%= deploy_user %>:<%= deploy_user %> "$SSH_DIR"
 
 
 # IPTables
@@ -44,7 +44,7 @@ aptitude -q -y install build-essential
 
 # Basic libraries
 printf "<%= script_notice_message('Setting up basic libraries and packages') %>"
-aptitude -q -y install ruby ruby-dev git-core screen aspell libaspell-dev libxml2-dev libfreeimage3 libfreeimage-dev libopenssl-ruby libssl-dev libreadline5 libreadline5-dev libpcre3 libpcre3-dev libmemcache0 libevent1 vim zip libxslt1-dev
+aptitude -q -y install ruby ruby-dev git-core screen aspell libaspell-dev libxml2-dev libfreeimage3 libfreeimage-dev libopenssl-ruby libssl-dev libreadline5 libreadline5-dev libpcre3 libpcre3-dev libmemcache0 libevent1 vim zip libxslt1-dev libperl-dev gs-gpl
 
 
 # Postfix
@@ -58,8 +58,9 @@ hostname --fqdn > /etc/mailname
 
 # MySQL
 printf "<%= script_notice_message('Setting up MySQL') %>"
-aptitude -q -y install mysql-server mysql-client libmysqlclient15-dev
+aptitude -q -y install mysql-server
 mysqladmin -u root password "$MYSQL_ROOT_PASSWORD"
+aptitude -q -y install mysql-client libmysqlclient15-dev
 <%= sed_file('/etc/mysql/my.cnf', "s|skip-external-locking|skip-external-locking\\ndefault-character-set = utf8\\ndefault-collation = utf8_general_ci|") %>
 
 
@@ -149,7 +150,7 @@ printf '/var/www/*/*/shared/log/*.log {
 printf "<%= script_notice_message('Installing Gems') %>"
 gem sources -a http://gems.github.com
 su -c 'gem sources -a http://gems.github.com' <%= deploy_user %>
-gem install ruby-debug bcrypt-ruby RedCloth capistrano image_science hpricot libxml-ruby raspell mysql rake nokogiri mechanize rspec --no-rdoc --no-ri
+gem install ruby-debug bcrypt-ruby RedCloth capistrano capistrano-ext aws termios image_science hpricot libxml-ruby raspell mysql rake nokogiri mechanize rspec --no-rdoc --no-ri
 
 
 # Cleanup
