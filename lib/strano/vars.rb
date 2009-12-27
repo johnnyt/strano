@@ -18,8 +18,12 @@ module Strano
 
       def config_dir
         @config_dir ||= begin
-          running_as_plugin_dir = File.join(File.dirname(__FILE__), %w[ .. .. strano_custom_files ])
-          File.expand_path(running_as_plugin_dir)
+          if defined?(RAILS_ROOT)
+            config_path = File.join(RAILS_ROOT, %w[ config strano_custom_files ])
+          else
+            config_path = File.join(File.dirname(__FILE__), %w[ .. .. .. .. .. config strano_custom_files ])
+          end
+          File.expand_path(config_path)
         end
       end
 
