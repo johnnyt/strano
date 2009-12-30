@@ -1,0 +1,52 @@
+
+printf "<%= script_notice_message('Generating public/private keys') %>"
+printf "y\n" | ssh-keygen -N '' -t rsa -f "/home/<%= deploy_user %>/.ssh/id_rsa"
+chown -R <%= deploy_user %>:<%= deploy_user %> "/home/<%=
+
+
+# RMagick
+sudo aptitude install libperl-dev
+sudo aptitude install gs-gpl
+
+mkdir imagick
+cd imagick
+wget ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick.tar.gz
+tar xvfz ImageMagick.tar.gz
+cd ImageMagick-(versionnumber)
+./configure
+sudo make
+sudo make install
+
+
+sudo wget http://rubyforge.org/frs/download.php/64971/RMagick-2.12.1.tar.gz
+tar xzf RMagick-2.12.1.tar.gz
+cd RMagick-2.12.1
+sudo ruby setup.rb
+sudo ruby setup.rb install
+
+
+
+
+
+# Sphinx Search Engine
+printf "<%= script_notice_message('Installing Sphinx') %>"
+aptitude -q -y install checkinstall # Allows us to install Sphinx as a Debian package
+wget http://www.sphinxsearch.com/downloads/sphinx-<%= SPHINX_VERSION %>.tar.gz
+tar xfz sphinx-<%= SPHINX_VERSION %>.tar.gz
+cd sphinx-<%= SPHINX_VERSION %>
+./configure
+make
+"Sphinx is a full-text search engine." | checkinstall --maintainer=endeveit@gmail.com --pkgname=sphinxsearch-<%= SPHINX_PKG_NAME %> --pkgversion=<%= SPHINX_PKG_VERSION %> --pkgrelease=1 --pkglicense=GPL --pkggroup=web --pkgsource=sphinx-<%= SPHINX_PKG_NAME %>-<%= SPHINX_PKG_VERSION %> --pkgaltsource=http://sphinxsearch.com/downloads.html --nodoc
+cd ..
+rm -r sphinx-<%= SPHINX_VERSION %>*
+
+
+# Memcached
+printf "<%= script_notice_message('Setting up Memcached') %>"
+aptitude -q -y install memcached
+
+
+# Autossh
+printf "<%= script_notice_message('Setting up autossh') %>"
+aptitude -q -y install autossh
+

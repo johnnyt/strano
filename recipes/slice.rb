@@ -5,8 +5,9 @@ SPHINX_VERSION = "0.9.9-rc2"
 SPHINX_PKG_NAME = "0.9.9-rc2"
 SPHINX_PKG_VERSION = "r1785"
 
-RUBY_EE_VERSION = "1.8.7-2009.10"
-RUBY_EE_DOWNLOAD_URL = "http://rubyforge.org/frs/download.php/66162/ruby-enterprise-#{RUBY_EE_VERSION}.tar.gz"
+RUBY_EE_VERSION = "1.8.7"
+RUBY_EE_FULL_VERSION = "1.8.7-2009.10"
+RUBY_EE_DOWNLOAD_URL = "http://rubyforge.org/frs/download.php/66162/ruby-enterprise-#{RUBY_EE_FULL_VERSION}.tar.gz"
 
 NGINX_VERSION = "0.7.64"
 
@@ -105,14 +106,24 @@ DEF
 
     desc "Setup a new slice from scratch (will prompt for temporary root password)."
     task :default do
+      start_time = Time.now
       transaction do
-        verify_new_slice
+        verify_new_slice # Needs input from the user - restart the timer
+        start_time = Time.now
         setup_users
         slice.update_shell_env
         slice.update_keys
         slice.update_ssh_config
         setup_script
       end
+      num_seconds = Time.now - start_time
+
+      color = server_stage.to_s == 'production' ? Capistrano::Logger.color(:red) : Capistrano::Logger.color(:blue)
+      puts "\n\n"
+      puts Capistrano::Logger.color(:white) + ("-" * Strano::RJUST)
+      puts "#{Capistrano::Logger.color(:green)}Your new server #{Capistrano::Logger.color(:yellow)}#{server_name}#{Capistrano::Logger.color(:green)} was setup in #{Capistrano::Logger.color(:red)}%.2f minutes" % (num_seconds.to_f / 60.0)
+      puts Capistrano::Logger.color(:white) + ("-" * Strano::RJUST)
+      puts Capistrano::Logger.color(:none)
     end
 
     desc "[internal] Attempt to login to the slice using default SSH options and root user."
@@ -182,9 +193,8 @@ DEF
       # TEMP UDEV FIX
       run "rm /etc/udev/rules.d/75-persistent-net-generator.rules"
 
-      run "rm setup.sh"
+      run "rm setup.sh ~/original_*"
     end
-
 
     desc "[internal] Rollback all possible settings from the script"
     task :rollback_script do
@@ -217,7 +227,10 @@ end # namespace :slice
 # Needs to be outside of a namespace in order to set a role
 desc "[internal] Setup variables used in slice management tasks."
 task :setup_slice_variables do
-  set :server_name, Capistrano::CLI.colorized_prompt("What is the server's name in variables.yml.aes? ")
+  puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
+  Strano::Vars.prompt_for_password
+
+  set :server_name, Capistrano::CLI.colorized_prompt("What is the server's name in variables.yml.aes?")
   raise ArgumentError, "Server Name must be provided" if server_name.blank?
 
   # =============================================================================
@@ -233,6 +246,7 @@ task :setup_slice_variables do
   Strano::Vars.secure_var(:mysql_root_password)  {|vars| vars['servers'][server_name]['mysql_root_password']}
   Strano::Vars.secure_var(:servers)              {|vars| vars['servers']}
 
+  # Pull in all needed encrypted variables
 	begin
 		Strano::Vars.variables.each{ |var, value| set var, value }
 	rescue
@@ -251,7 +265,8 @@ task :setup_slice_variables do
   # =============================================================================
   # SSH / SECURITY OPTIONS
   # =============================================================================
-  set :ssh_options, Strano::Vars[:ssh_options]
+  # set :ssh_options, Strano::Vars[:ssh_options]
+  set :port,        Strano::Vars[:ssh_options][:port].to_s
   set :use_sudo,    Strano::Vars[:use_sudo]
   default_run_options[:pty] = Strano::Vars[:pty]
 end

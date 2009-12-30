@@ -66,8 +66,8 @@ namespace :snapshot do
         :destination => ((stage == 'production') ? Capistrano::Logger.color(:red) : Capistrano::Logger.color(:yellow))
       }
 
-      source_string = "#{server_name_colors[:source]}#{servers[source_stage]['default'].upcase}: #{no_color}"
-      destination_string = "#{server_name_colors[:destination]}#{servers[stage]['default'].upcase}: #{no_color}"
+      source_string = "#{server_name_colors[:source]}#{servers[source_stage]['default']}: #{no_color}"
+      destination_string = "#{server_name_colors[:destination]}#{servers[stage]['default']}: #{no_color}"
 
       command = "cd /home/#{deploy_user}/#{application}/ && rake snapshot:create"
       puts %Q!       #{source_string}#{color}Running: "#{command}"#{no_color}!
@@ -350,8 +350,8 @@ namespace :ui do
       server_name = servers[stage].kind_of?(Hash) ? servers[stage]['default'] : servers[stage].to_s
 
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
-      puts color + stage.to_s.upcase.rjust(Strano::RJUST)
-      puts server_name.upcase.rjust(Strano::RJUST)
+      puts color + stage.to_s.rjust(Strano::RJUST)
+      puts server_name.rjust(Strano::RJUST)
       puts Capistrano::Logger.color(:green) + ("-" * Strano::RJUST)
       puts Capistrano::Logger.color(:none)
     end

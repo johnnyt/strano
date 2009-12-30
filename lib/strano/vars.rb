@@ -54,7 +54,7 @@ module Strano
       end
 
       def variables
-        prompt_for_password
+        prompt_for_password unless @encrypted_variables.present?
         
         plain_text_var_hash = {}
 
