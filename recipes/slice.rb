@@ -265,8 +265,8 @@ task :setup_slice_variables do
   # =============================================================================
   # SSH / SECURITY OPTIONS
   # =============================================================================
-  # set :ssh_options, Strano::Vars[:ssh_options]
-  set :port,        Strano::Vars[:ssh_options][:port].to_s
+  set :ssh_options, Strano::Vars[:ssh_options]
+  # set :port,        Strano::Vars[:ssh_options][:port].to_s
   set :use_sudo,    Strano::Vars[:use_sudo]
   default_run_options[:pty] = Strano::Vars[:pty]
 end
