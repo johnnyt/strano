@@ -374,7 +374,7 @@ task :setup_application_variables do
 	# Right now - Strano has only been tested with everything running on the same server.
 	# It would be nice to be able to use different servers for each role.
 	[ :web, :app, :files, :db ].each do |server_role|
-		role server_role, server_name
+		role server_role, server_name, :primary => true
 	end
 
 
