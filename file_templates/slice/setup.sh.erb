@@ -18,12 +18,6 @@ iptables-save > /etc/iptables.up.rules
 
 /etc/init.d/ssh reload
 
-# Locale
-printf "<%= script_notice_message('Setting up locale') %>"
-aptitude -q -y install locales
-<%= sed_file('/etc/locale.gen', "s|# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|") %>
-locale-gen
-
 # Update, safe-upgrade, build-essential
 printf "<%= script_notice_message('aptitude update') %>"
 aptitude -q -y update
@@ -31,6 +25,12 @@ printf "<%= script_notice_message('aptitude safe-upgrade') %>"
 aptitude -q -y safe-upgrade
 printf "<%= script_notice_message('aptitude install build-essential') %>"
 aptitude -q -y install build-essential
+
+# Locale
+printf "<%= script_notice_message('Setting up locale') %>"
+aptitude -q -y install locales
+<%= sed_file('/etc/locale.gen', "s|# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|") %>
+locale-gen
 
 # Basic libraries
 printf "<%= script_notice_message('Setting up basic libraries and packages') %>"
